@@ -1,0 +1,75 @@
+2.28.2:
+	Small fixes for the rendering
+
+2.28.0:
+	Updated translations
+
+2.27.91:
+	Updated translations, minor fixes
+
+2.27.4:
+	Update to libxklavier 4.0.
+
+2.27.2:
+	Replacing libglade with gtkbuilder, updated translations
+
+2.26.0:
+	2 bugs related to deprecated APIs fixed.
+
+2.25.91:
+	Several small bugs/build issues ar closed
+	First release for GNOME 2.25/2.26.
+
+2.24.0:
+	Memory leak fixed, desktop file corrected.
+	First stable release for GNOME 2.24.
+
+2.23.91:
+	Dropping libgnomeui dependency, small bugfix
+
+2.23.2:
+	Dropping old/unneeded code.
+	Make default size of the preview dependent on the screen size.
+
+2.22.0:
+	Using tango icons. Final release for GNOME 2.22.0
+
+2.21.4.1:
+	Fix for the indicators crash in keyboard drawing,
+	Keyboard drawing printing functions moved to libgnomekbd, from g-c-c
+
+2.21.4:
+	Render keyboard to cairo, making printing possible. 
+	Build tests optionally. 
+	Use GOption instead of popt.
+	Cygwin build fixes
+
+2.21.1:
+	Updated scheme translation of base.xml in xkeyboard config causes a 
+	chain of changes upstack. Stupid and overenginered dbus client-server 
+	is gone!
+	There is no API breakage - but libxklavier and xkeyboard-config from 
+	CVS are recommended: otherwise the translation would not work.
+	Some rendering fixes in GkbdKeyboardDrawing widget
+
+2.20.0:
+	6 new translations, minor fix to the build process
+
+2.19.91:
+	Fixed a couple of bugs (one crasher), minor build fixes
+
+2.19.90:
+	Updated translations, minor fixes, first in 2.20 series
+
+2.18.2:
+	Several keyboard drawing bugs fixed
+	Crash on incorrect GObject usage fixed
+	Added 4 translations
+
+2.18.1:
+	Several keyboard drawing bugs fixed
+	A lot of translations added
+	One memory leak eliminated
+
+2.18.0:
+	First stable release
