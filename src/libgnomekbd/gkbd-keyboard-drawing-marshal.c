@@ -1,6 +1,4 @@
-
-#include	<glib-object.h>
-
+#include <glib-object.h>
 
 #ifdef G_ENABLE_DEBUG
 #define g_marshal_value_peek_boolean(v)  g_value_get_boolean (v)
@@ -48,6 +46,38 @@
 #define g_marshal_value_peek_variant(v)  (v)->data[0].v_pointer
 #endif /* !G_ENABLE_DEBUG */
 
-
 /* VOID:UINT (./gkbd-keyboard-drawing-marshal.list:2) */
+void
+gkbd_keyboard_drawing_VOID__UINT (GClosure     *closure,
+                                  GValue       *return_value G_GNUC_UNUSED,
+                                  guint         n_param_values,
+                                  const GValue *param_values,
+                                  gpointer      invocation_hint G_GNUC_UNUSED,
+                                  gpointer      marshal_data)
+{
+  typedef void (*GMarshalFunc_VOID__UINT) (gpointer data1,
+                                           guint arg1,
+                                           gpointer data2);
+  GCClosure *cc = (GCClosure *) closure;
+  gpointer data1, data2;
+  GMarshalFunc_VOID__UINT callback;
+
+  g_return_if_fail (n_param_values == 2);
+
+  if (G_CCLOSURE_SWAP_DATA (closure))
+    {
+      data1 = closure->data;
+      data2 = g_value_peek_pointer (param_values + 0);
+    }
+  else
+    {
+      data1 = g_value_peek_pointer (param_values + 0);
+      data2 = closure->data;
+    }
+  callback = (GMarshalFunc_VOID__UINT) (marshal_data ? marshal_data : cc->callback);
+
+  callback (data1,
+            g_marshal_value_peek_uint (param_values + 1),
+            data2);
+}
 

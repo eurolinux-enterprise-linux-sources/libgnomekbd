@@ -1,11 +1,11 @@
 Name:           libgnomekbd
-Version:        3.22.0.1
+Version:        3.26.0
 Release:        1%{?dist}
 Summary:        A keyboard configuration library
 
 License:        LGPLv2+
 URL:            http://gswitchit.sourceforge.net
-Source0:        http://download.gnome.org/sources/libgnomekbd/3.22/libgnomekbd-%{version}.tar.xz
+Source0:        http://download.gnome.org/sources/libgnomekbd/3.26/libgnomekbd-%{version}.tar.xz
 
 BuildRequires:  gtk3-devel >= 3.0.0
 BuildRequires:  cairo-devel
@@ -96,6 +96,10 @@ glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 
 
 %changelog
+* Wed Sep 13 2017 Kalev Lember <klember@redhat.com> - 3.26.0-1
+- Update to 3.26.0
+- Resolves: #1569289
+
 * Tue Sep 20 2016 Björn Esser <fedora@besser82.io> - 3.22.0.1-1
 - Update to 3.22.0.1
 - Re-add gschemes missing in previous version (rhbz #1377853)
