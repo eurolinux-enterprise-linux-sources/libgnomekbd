@@ -1000,7 +1000,7 @@ draw_key_label (GkbdKeyboardDrawingRenderContext * context,
 	gint padding;
 	gint g, l, glp;
 
-	if (!drawing->xkb)
+	if (!drawing->xkb || !drawing->groupLevels || keycode == INVALID_KEYCODE)
 		return;
 
 	padding = 23 * context->scale_numerator / context->scale_denominator;	/* 2.3mm */
@@ -1466,9 +1466,7 @@ alloc_render_context (GkbdKeyboardDrawing * drawing)
 	pango_layout_set_ellipsize (context->layout, PANGO_ELLIPSIZE_END);
 
 	context->font_desc =
-	    pango_font_description_copy (gtk_widget_get_style
-					 (GTK_WIDGET
-					  (drawing))->font_desc);
+		pango_font_description_copy (pango_context_get_font_description (pangoContext));
 	context->angle = 0;
 	context->scale_numerator = 1;
 	context->scale_denominator = 1;
@@ -1539,12 +1537,9 @@ size_allocate (GtkWidget * widget,
 {
 	GkbdKeyboardDrawingRenderContext *context = drawing->renderContext;
 
-	if (!context_setup_scaling (context, drawing,
-				    allocation->width, allocation->height,
-				    50, 50))
-		return;
-
-	gtk_widget_set_allocation (GTK_WIDGET (drawing), allocation);
+	context_setup_scaling (context, drawing,
+			       allocation->width, allocation->height,
+			       50, 50);
 }
 
 static gint
@@ -1574,7 +1569,7 @@ key_event (GtkWidget * widget,
 	key->pressed = (event->type == GDK_KEY_PRESS);
 
 	invalidate_key_region (drawing, key);
-	return FALSE;
+	return TRUE;
 }
 
 static gint
@@ -1592,6 +1587,8 @@ static gboolean
 unpress_keys (GkbdKeyboardDrawing * drawing)
 {
 	gint i;
+
+	drawing->timeout = 0;
 
 	if (!drawing->xkb)
 		return FALSE;
@@ -1615,7 +1612,7 @@ focus_event (GtkWidget * widget,
 	if (event->in && drawing->timeout > 0) {
 		g_source_remove (drawing->timeout);
 		drawing->timeout = 0;
-	} else
+	} else if (!drawing->timeout)
 		drawing->timeout =
 		    g_timeout_add (120, (GSourceFunc) unpress_keys,
 				   drawing);
@@ -1742,8 +1739,6 @@ init_keys_and_doodads (GkbdKeyboardDrawing * drawing)
 							      xkbkey->name.
 							      name);
 
-				if (keycode == INVALID_KEYCODE)
-					continue;
 #ifdef KBDRAW_DEBUG
 				printf
 				    ("    initing key %d, shape: %p(%p + %d), code: %u\n",
@@ -1895,6 +1890,9 @@ free_cdik (			/*colors doodads indicators keys */
 static void
 alloc_cdik (GkbdKeyboardDrawing * drawing)
 {
+	if (!drawing->xkb)
+		return;
+
 	drawing->physical_indicators_size =
 	    drawing->xkb->indicators->phys_indicators + 1;
 	drawing->physical_indicators =
@@ -1947,26 +1945,10 @@ xkb_state_notify_event_filter (GdkXEvent * gdkxev,
 		switch (kev->any.xkb_type) {
 		case XkbStateNotify:
 			if (((kev->state.changed & modifier_change_mask) &&
-			     drawing->track_modifiers)) {
-				free_cdik (drawing);
-				if (drawing->track_modifiers)
-					gkbd_keyboard_drawing_set_mods
-					    (drawing,
-					     kev->state.compat_state);
-				drawing->keys =
-				    g_new0 (GkbdKeyboardDrawingKey,
-					    drawing->xkb->max_key_code +
-					    1);
-
-				gtk_widget_get_allocation (GTK_WIDGET
-							   (drawing),
-							   &allocation);
-				size_allocate (GTK_WIDGET (drawing),
-					       &allocation, drawing);
-
-				init_keys_and_doodads (drawing);
-				init_colors (drawing);
-			}
+			     drawing->track_modifiers))
+				gkbd_keyboard_drawing_set_mods
+				    (drawing,
+				     kev->state.compat_state);
 			break;
 
 		case XkbIndicatorStateNotify:
@@ -2052,7 +2034,6 @@ gkbd_keyboard_drawing_init (GkbdKeyboardDrawing * drawing)
 	drawing->track_modifiers = 0;
 	drawing->track_config = 0;
 
-	gtk_widget_set_double_buffered (GTK_WIDGET (drawing), FALSE);
 	gtk_widget_set_has_window (GTK_WIDGET (drawing), FALSE);
 
 	/* XXX: XkbClientMapMask | XkbIndicatorMapMask | XkbNamesMask | XkbGeometryMask */
@@ -2063,24 +2044,20 @@ gkbd_keyboard_drawing_init (GkbdKeyboardDrawing * drawing)
 				       XkbGBN_SymbolsMask |
 				       XkbGBN_IndicatorMapMask,
 				       XkbUseCoreKbd);
-	if (drawing->xkb == NULL) {
-		g_critical
-		    ("XkbGetKeyboard failed to get keyboard from the server!");
-		return;
+	if (drawing->xkb) {
+		XkbGetNames (drawing->display, XkbAllNamesMask, drawing->xkb);
+		XkbSelectEventDetails (drawing->display, XkbUseCoreKbd,
+				       XkbIndicatorStateNotify,
+				       drawing->xkb->indicators->phys_indicators,
+				       drawing->xkb->indicators->phys_indicators);
 	}
 
-	XkbGetNames (drawing->display, XkbAllNamesMask, drawing->xkb);
 	drawing->l3mod = XkbKeysymToModifiers (drawing->display,
 					       GDK_KEY_ISO_Level3_Shift);
 
 	drawing->xkbOnDisplay = TRUE;
 
 	alloc_cdik (drawing);
-
-	XkbSelectEventDetails (drawing->display, XkbUseCoreKbd,
-			       XkbIndicatorStateNotify,
-			       drawing->xkb->indicators->phys_indicators,
-			       drawing->xkb->indicators->phys_indicators);
 
 	mask =
 	    (XkbStateNotifyMask | XkbNamesNotifyMask |
@@ -2148,20 +2125,11 @@ get_preferred_width (GtkWidget * widget,
 {
 	GdkRectangle rect;
 	gint w, monitor;
-	GdkDisplay *display = gtk_widget_get_display (widget);
-	GdkDeviceManager *gdm = gdk_display_get_device_manager (display);
 	GdkScreen *scr = NULL;
-	GList *devices =
-	    gdk_device_manager_list_devices (gdm, GDK_SOURCE_KEYBOARD);
-	if (g_list_length (devices) > 0) {
-		gint x, y;
-		GdkDevice *dev = GDK_DEVICE (devices->data);
-		gdk_device_get_position (dev, &scr, &x, &y);
-		monitor = gdk_screen_get_monitor_at_point (scr, x, y);
-	} else {
-		scr = gdk_screen_get_default ();
-		monitor = gdk_screen_get_primary_monitor (scr);
-	}
+
+	scr = gdk_screen_get_default ();
+	monitor = gdk_screen_get_primary_monitor (scr);
+
 	gdk_screen_get_monitor_geometry (scr, monitor, &rect);
 	w = rect.width;
 	*minimum_width = *natural_width = w - (w >> 2);
@@ -2266,13 +2234,13 @@ gkbd_keyboard_drawing_render (GkbdKeyboardDrawing * kbdrawing,
 	    gtk_widget_get_state_flags (GTK_WIDGET (kbdrawing));
 	GtkStyleContext *style_context =
 	    gtk_widget_get_style_context (GTK_WIDGET (kbdrawing));
+	PangoContext *pangoContext =
+		gtk_widget_get_pango_context (GTK_WIDGET (kbdrawing));
 	GkbdKeyboardDrawingRenderContext context = {
 		cr,
 		kbdrawing->renderContext->angle,
 		layout,
-		pango_font_description_copy (gtk_widget_get_style
-					     (GTK_WIDGET
-					      (kbdrawing))->font_desc),
+		pango_font_description_copy (pango_context_get_font_description (pangoContext)),
 		1, 1
 	};
 
@@ -2328,8 +2296,12 @@ gkbd_keyboard_drawing_set_keyboard (GkbdKeyboardDrawing * drawing,
 		drawing->xkbOnDisplay = TRUE;
 	}
 
-	if (drawing->xkb == NULL)
-		return FALSE;
+	if (drawing->xkb) {
+		XkbSelectEventDetails (drawing->display, XkbUseCoreKbd,
+				       XkbIndicatorStateNotify,
+				       drawing->xkb->indicators->phys_indicators,
+				       drawing->xkb->indicators->phys_indicators);
+	}
 
 	alloc_cdik (drawing);
 

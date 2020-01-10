@@ -1,3 +1,16 @@
+3.22.0.1:
+        Brown paper bag release to fix non-installed gschemas
+
+3.22.0:
+        Version bump for stable GNOME release - no changes
+
+3.21.92:
+        Translation updates
+        Draw keys with invalid keycodes
+        Fix modifier key pressed state
+        Build system and minor code cleanups
+        Avoid crashes on wayland sessions
+
 3.6.0:
         Translation updates
 

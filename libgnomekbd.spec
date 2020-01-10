@@ -1,13 +1,11 @@
 Name:           libgnomekbd
-Version:        3.6.0
-Release:        2%{?dist}
+Version:        3.22.0.1
+Release:        1%{?dist}
 Summary:        A keyboard configuration library
 
-Group:          System Environment/Libraries
 License:        LGPLv2+
 URL:            http://gswitchit.sourceforge.net
-# VCS: git:git://git.gnome.org/libgnomekbd
-Source0:        http://download.gnome.org/sources/libgnomekbd/3.6/libgnomekbd-%{version}.tar.xz
+Source0:        http://download.gnome.org/sources/libgnomekbd/3.22/libgnomekbd-%{version}.tar.xz
 
 BuildRequires:  gtk3-devel >= 3.0.0
 BuildRequires:  cairo-devel
@@ -30,8 +28,7 @@ keyboard configuration.
 
 %package        devel
 Summary:        Development files for %{name}
-Group:          Development/Libraries
-Requires:       %{name} = %{version}-%{release}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 
 
 %description    devel
@@ -50,16 +47,17 @@ make %{?_smp_mflags}
 
 
 %install
-make install DESTDIR=$RPM_BUILD_ROOT INSTALL="install -p"
+%make_install
 find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
 chrpath --delete $RPM_BUILD_ROOT%{_libdir}/libgnomekbdui.so.8.0.0
 
-desktop-file-install --delete-original       \
-  --dir $RPM_BUILD_ROOT%{_datadir}/applications             \
-  $RPM_BUILD_ROOT%{_datadir}/applications/gkbd-keyboard-display.desktop
-
 %find_lang %{name}
+
+
+%check
+desktop-file-validate $RPM_BUILD_ROOT%{_datadir}/applications/gkbd-keyboard-display.desktop
+
 
 %preun
 %gconf_schema_remove desktop_gnome_peripherals_keyboard_xkb
@@ -81,7 +79,7 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor >&/dev/null || :
 glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 
 %files -f %{name}.lang
-%doc AUTHORS COPYING.LIB
+%license COPYING.LIB
 %{_libdir}/*.so.*
 %{_datadir}/libgnomekbd
 %{_datadir}/glib-2.0/schemas/org.gnome.libgnomekbd*.gschema.xml
@@ -89,7 +87,6 @@ glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 %{_bindir}/gkbd-keyboard-display
 %{_datadir}/applications/gkbd-keyboard-display.desktop
 %{_datadir}/GConf/gsettings/libgnomekbd.convert
-
 
 %files devel
 %{_includedir}/*
@@ -99,6 +96,40 @@ glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 
 
 %changelog
+* Tue Sep 20 2016 Björn Esser <fedora@besser82.io> - 3.22.0.1-1
+- Update to 3.22.0.1
+- Re-add gschemes missing in previous version (rhbz #1377853)
+
+* Thu Sep 15 2016 Kalev Lember <klember@redhat.com> - 3.21.92-1
+- Update to 3.21.92
+- Don't set group tags
+- Use make_install macro
+- Use license macro for COPYING
+- Use desktop-file-validate instead of desktop-file-install
+- Tighten -devel deps with the _isa macro
+
+* Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 3.6.0-9
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
+
+* Wed Jun 17 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.6.0-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_23_Mass_Rebuild
+
+* Sat Feb 21 2015 Till Maas <opensource@till.name> - 3.6.0-7
+- Rebuilt for Fedora 23 Change
+  https://fedoraproject.org/wiki/Changes/Harden_all_packages_with_position-independent_code
+
+* Sun Aug 17 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.6.0-6
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_22_Mass_Rebuild
+
+* Tue Jul 22 2014 Kalev Lember <kalevlember@gmail.com> - 3.6.0-5
+- Rebuilt for gobject-introspection 1.41.4
+
+* Sat Jun 07 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.6.0-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_Mass_Rebuild
+
+* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.6.0-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+
 * Thu Feb 14 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.6.0-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
 
@@ -125,7 +156,7 @@ glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 - Obsolete the -capplet subpackage; the whole plugins architecture is
   removed from libgnomekbd
 
-* Fri Feb 25 2012 Matthias Clasen <mclasen@redhat.com> - 3.3.90-1
+* Sat Feb 25 2012 Matthias Clasen <mclasen@redhat.com> - 3.3.90-1
 - Update to 3.3.90
 
 * Fri Jan 13 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.2.0-2
