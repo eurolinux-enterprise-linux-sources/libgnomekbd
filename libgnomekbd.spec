@@ -1,11 +1,13 @@
 Name:           libgnomekbd
 Version:        3.26.0
-Release:        1%{?dist}
+Release:        3%{?dist}
 Summary:        A keyboard configuration library
 
 License:        LGPLv2+
 URL:            http://gswitchit.sourceforge.net
 Source0:        http://download.gnome.org/sources/libgnomekbd/3.26/libgnomekbd-%{version}.tar.xz
+# https://bugzilla.redhat.com/show_bug.cgi?id=1448326
+Patch0:         libgnomekbd-fix-invalid-layout-crash.patch
 
 BuildRequires:  gtk3-devel >= 3.0.0
 BuildRequires:  cairo-devel
@@ -38,6 +40,7 @@ developing applications that use libgnomekbd.
 
 %prep
 %setup -q
+%patch0 -p1
 
 %build
 %configure --disable-static \
@@ -96,6 +99,12 @@ glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 
 
 %changelog
+* Tue Mar 26 2019 David King <dking@redhat.com> - 3.26.0-3
+- Apply invalid layout patch (#1448326)
+
+* Mon Mar 25 2019 David King <dking@redhat.com> - 3.26.0-2
+- Fix crash with invalid layout (#1448326)
+
 * Wed Sep 13 2017 Kalev Lember <klember@redhat.com> - 3.26.0-1
 - Update to 3.26.0
 - Resolves: #1569289

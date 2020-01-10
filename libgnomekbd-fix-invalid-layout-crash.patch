@@ -1,0 +1,84 @@
+From 3ec4bc6648c447a28bac0fe3cbdbacf887f2a762 Mon Sep 17 00:00:00 2001
+From: Antonio Ospite <ao2@ao2.it>
+Date: Fri, 10 Nov 2017 12:45:25 +0100
+Subject: [PATCH] Fix a regression after commit 5f260b2b73a3 (Handle
+ XkbGetKeyboard() failing)
+X-Face: z*RaLf`X<@C75u6Ig9}{oW$H;1_\2t5)({*|jhM<pyWR#k60!#=#>/Vb;]yA5<GWI5`6u&+
+ ;6b'@y|8w"wB;4/e!7wYYrcqdJFY,~%Gk_4]cq$Ei/7<j&N3ah(m`ku?pX.&+~:_/wC~dwn^)MizBG
+ !pE^+iDQQ1yC6^,)YDKkxDd!T>\I~93>J<_`<4)A{':UrE
+
+Passing names with invalid values to
+gkbd_keyboard_drawing_set_keyboard() makes the library crash with
+a segmentation fault.
+
+This can be reproduced with gkbd-keyboard-display:
+
+-----------------------------------------------------------------------
+$ gdb --eval-comman=run --args gkbd-keyboard-display -l "INVALID"
+...
+Thread 1 "gkbd-keyboard-d" received signal SIGSEGV, Segmentation fault.
+0x00007ffff54dec2e in get_preferred_height_for_width (...)
+    at gkbd-keyboard-drawing.c:2147
+2147		    drawing->xkb->geom->width_mm;
+-----------------------------------------------------------------------
+
+The same issue could be reproduced also with the test programs:
+
+  $ ./test/gkbd-keyboard-drawing-test --geometry="INVALID"
+  $ ./test/python_test.py "INVALID"
+
+The spirit of commit 5f260b2b73a3 seems to be: let's not fail
+prematurely in gkbd_keyboard_drawing_init() because it could still be
+possible to get the XKeyboard in gkbd_keyboard_drawing_set_keyboard().
+
+However in the implementation gkbd_keyboard_drawing_set_keyboard() ends
+up returning always TRUE, unconditionally, even when calling
+XkbGetKeyboard() fails there too.
+
+Fix the issue by returning FALSE in gkbd_keyboard_drawing_set_keyboard()
+when no keyboard was found, at that point there should really not be any
+chances anymore to get the keyboard the user asked for.
+
+While at it also remove the initalization of drawing->xkb in
+gkbd_keyboard_drawing_set_keyboard() which is not needed and might hide
+future bugs.
+
+https://bugzilla.gnome.org/show_bug.cgi?id=780151
+---
+ libgnomekbd/gkbd-keyboard-drawing.c | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/libgnomekbd/gkbd-keyboard-drawing.c b/libgnomekbd/gkbd-keyboard-drawing.c
+index da526d2..7c68fc3 100644
+--- a/libgnomekbd/gkbd-keyboard-drawing.c
++++ b/libgnomekbd/gkbd-keyboard-drawing.c
+@@ -2271,7 +2271,6 @@ gkbd_keyboard_drawing_set_keyboard (GkbdKeyboardDrawing * drawing,
+ 	free_cdik (drawing);
+ 	if (drawing->xkb)
+ 		XkbFreeKeyboard (drawing->xkb, 0, TRUE);	/* free_all = TRUE */
+-	drawing->xkb = NULL;
+ 
+ 	if (names) {
+ 		drawing->xkb =
+@@ -2296,12 +2295,13 @@ gkbd_keyboard_drawing_set_keyboard (GkbdKeyboardDrawing * drawing,
+ 		drawing->xkbOnDisplay = TRUE;
+ 	}
+ 
+-	if (drawing->xkb) {
+-		XkbSelectEventDetails (drawing->display, XkbUseCoreKbd,
+-				       XkbIndicatorStateNotify,
+-				       drawing->xkb->indicators->phys_indicators,
+-				       drawing->xkb->indicators->phys_indicators);
+-	}
++	if (!drawing->xkb)
++		return FALSE;
++
++	XkbSelectEventDetails (drawing->display, XkbUseCoreKbd,
++			       XkbIndicatorStateNotify,
++			       drawing->xkb->indicators->phys_indicators,
++			       drawing->xkb->indicators->phys_indicators);
+ 
+ 	alloc_cdik (drawing);
+ 
+-- 
+2.15.0
