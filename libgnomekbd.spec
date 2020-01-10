@@ -1,6 +1,6 @@
 Name:           libgnomekbd
 Version:        3.6.0
-Release:        4%{?dist}
+Release:        2%{?dist}
 Summary:        A keyboard configuration library
 
 Group:          System Environment/Libraries
@@ -99,12 +99,6 @@ glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 
 
 %changelog
-* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 3.6.0-4
-- Mass rebuild 2014-01-24
-
-* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 3.6.0-3
-- Mass rebuild 2013-12-27
-
 * Thu Feb 14 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.6.0-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
 
